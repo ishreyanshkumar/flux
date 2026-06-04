@@ -5,7 +5,6 @@ use std::path::PathBuf;
 pub struct Config {
     pub alias_file_paths: Vec<String>,
     pub data_dir: String,
-    pub socket_path: String,
     pub max_wal_events: usize,
     pub bm25_k1: f64,
     pub bm25_b: f64,
@@ -15,7 +14,6 @@ impl Default for Config {
     fn default() -> Self {
         let dir = data_dir();
         Config {
-            socket_path: dir.join("flux.sock").to_string_lossy().into(),
             alias_file_paths: vec![dir.join("aliases").to_string_lossy().into()],
             data_dir: dir.to_string_lossy().into(),
             max_wal_events: 50_000,

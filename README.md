@@ -16,7 +16,6 @@
 - [Query Language](#query-language)
 - [Workflow Mining](#workflow-mining)
 - [TUI State Machine](#tui-state-machine)
-- [Daemon Architecture](#daemon-architecture)
 - [Alias Suggestion Engine](#alias-suggestion-engine)
 - [Scoring Algorithm](#scoring-algorithm)
 - [CLI Reference](#cli-reference)
@@ -49,7 +48,6 @@ graph TD
     SHELL["🐚 Shell Integration Layer<br/>(Bash · Zsh · Fish · POSIX · PowerShell)"]
     CORE["config.rs<br/>Config"]
     STORAGE["store.rs<br/>WAL · CommandStore · AliasStore · ShellEvent"]
-    DAEMON["daemon.rs<br/>Tokio UDS server · async ingestor"]
     INDEXER["search.rs<br/>Radix Trie · BM25 · Fuzzy · AliasSuggester"]
     MINER["miner.rs<br/>Session clustering · Workflow DAG · Stats"]
     QUERY["query.rs<br/>Lexer → AST → Parser → Executor"]
@@ -57,7 +55,6 @@ graph TD
 
     SHELL -->|"fire-and-forget (non-blocking)"| CORE
     CORE --> STORAGE
-    CORE --> DAEMON
     STORAGE --> INDEXER
     STORAGE --> MINER
     INDEXER --> QUERY
@@ -399,38 +396,6 @@ stateDiagram-v2
 
 ---
 
-## Daemon Architecture
-
-```mermaid
-flowchart TD
-    START([flux-daemon starts]) --> BIND[Bind UnixListener\nto cfg.socket_path]
-    BIND --> CHAN[crossbeam bounded channel\ncap = 1024]
-    CHAN --> WORKER[Spawn worker thread\nStore + WAL owner]
-    CHAN --> ACCEPT[Tokio accept loop]
-
-    ACCEPT --> CONN[New UDS connection]
-    CONN --> SPAWN[tokio::spawn handle]
-    SPAWN --> READ[AsyncBufRead lines]
-    READ --> PARSE{serde_json\nShellEvent?}
-    PARSE -->|ok| SEND[tx.try_send]
-    PARSE -->|err| WARN[warn! parse error]
-    SEND -->|full| DROP[warn! drop event]
-    SEND -->|ok| CHAN2[(channel queue)]
-
-    CHAN2 --> WORKER
-    WORKER --> WAL_WRITE[wal.append]
-    WAL_WRITE --> INGEST[store.ingest]
-    INGEST --> COUNT{n % 500 == 0?}
-    COUNT -->|yes| SNAP[store.save snapshot]
-    SNAP --> COMPACT{WAL needs\ncompaction?}
-    COMPACT -->|yes| WAL_COMPACT[wal.compact]
-    COUNT -->|no| ACCEPT
-
-    style WORKER fill:#0f172a,color:#fff
-    style CHAN2 fill:#1e40af,color:#fff
-```
-
----
 
 ## Alias Suggestion Engine
 
@@ -578,7 +543,6 @@ Config lives at `~/.flux/config.json`. All fields are optional — Flux uses sen
 ```json
 {
   "data_dir": "~/.flux",
-  "socket_path": "~/.flux/flux.sock",
   "alias_file_paths": ["~/.flux/aliases"],
   "max_wal_events": 50000,
   "bm25_k1": 1.5,
@@ -589,7 +553,6 @@ Config lives at `~/.flux/config.json`. All fields are optional — Flux uses sen
 | Field              | Default               | Description                                       |
 | ------------------ | --------------------- | ------------------------------------------------- |
 | `data_dir`         | `~/.flux`             | Where all flux data lives                         |
-| `socket_path`      | `~/.flux/flux.sock`   | Unix domain socket for the daemon                 |
 | `alias_file_paths` | `["~/.flux/aliases"]` | Alias files to read/write (sourced by shell hook) |
 | `max_wal_events`   | `50,000`              | WAL line limit before compaction triggers         |
 | `bm25_k1`          | `1.5`                 | BM25 term saturation parameter                    |
@@ -628,9 +591,6 @@ cargo build --release
 # Run the TUI
 cargo run
 
-# Run the daemon (optional — CLI works standalone)
-cargo run --bin flux-daemon
-
 # Run tests
 cargo test
 ```
@@ -640,7 +600,6 @@ cargo test
 ```mermaid
 graph BT
     TUI["tui/\n(binary: flux)"]
-    DAEMON["daemon.rs\n(binary: flux-daemon)"]
     QUERY["query.rs"]
     SEARCH["search.rs"]
     MINER["miner.rs"]
@@ -656,9 +615,6 @@ graph BT
     TUI --> MINER
     TUI --> STORE
     TUI --> CONFIG
-
-    DAEMON --> STORE
-    DAEMON --> CONFIG
 
     SEARCH --> STORE
     SEARCH --> CONFIG
@@ -682,7 +638,6 @@ flux/
 │   ├── miner.rs         # Session clustering · WorkflowDag · MarkovChain · Stats
 │   ├── query.rs         # Lexer · AST · recursive descent parser · executor
 │   ├── shell.rs         # Shell init script generator (bash/zsh/fish/posix)
-│   ├── daemon.rs        # Tokio UDS server (binary: flux-daemon)
 │   └── tui/
 │       ├── mod.rs       # TUI entry point
 │       ├── app.rs       # App state machine
@@ -703,13 +658,5 @@ To uninstall flux, you can run the command:
 curl -sSfL https://raw.githubusercontent.com/ishreyanshkumar/flux/main/uninstall.sh | sh
 ```
 If you installed the software using a package manager, remove it using the package manager's uninstall command.
-
----
-
-<div align="center">
-
-Built with ⚡ in Rust · Local-first · Zero telemetry · Sub-millisecond
-
-</div>
 
 ---
