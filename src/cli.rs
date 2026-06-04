@@ -12,18 +12,33 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Cmd {
     /// Add a shell alias
-    Add { alias: String, #[clap(short='c', long)] command: String },
+    Add {
+        alias: String,
+        #[clap(short = 'c', long)]
+        command: String,
+    },
     /// Remove an alias
     Remove { alias: String },
     /// Change an alias
-    Change { old_alias: String, new_alias: String, command: String },
+    Change {
+        old_alias: String,
+        new_alias: String,
+        command: String,
+    },
     /// List all aliases
     List,
     /// Suggest aliases for frequent commands
     #[clap(alias = "get-suggestions")]
-    Suggest { #[clap(short='n', long)] num: Option<usize> },
+    Suggest {
+        #[clap(short = 'n', long)]
+        num: Option<usize>,
+    },
     /// Fuzzy search command history
-    Search { query: String, #[clap(short='l', long)] limit: Option<usize> },
+    Search {
+        query: String,
+        #[clap(short = 'l', long)]
+        limit: Option<usize>,
+    },
     /// Workflow stats
     Stats,
     /// Query command history
@@ -38,8 +53,18 @@ pub enum Cmd {
     /// Contextual command suggestions based on current environment
     Context { cwd: Option<String> },
     #[clap(hide = true)]
-    Init { #[clap(arg_enum)] shell: Shell },
+    Init {
+        #[clap(arg_enum)]
+        shell: Shell,
+    },
 }
 
 #[derive(ArgEnum, Clone)]
-pub enum Shell { Bash, Zsh, Fish, #[clap(alias="ksh")] Posix, Powershell }
+pub enum Shell {
+    Bash,
+    Zsh,
+    Fish,
+    #[clap(alias = "ksh")]
+    Posix,
+    Powershell,
+}

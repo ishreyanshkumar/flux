@@ -2,9 +2,12 @@ pub mod app;
 pub mod events;
 pub mod ui;
 
-use app::App;
-use crossterm::{execute, terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen}};
 use crate::config::Config;
+use app::App;
+use crossterm::{
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
 use ratatui::{backend::CrosstermBackend, Terminal};
 
 pub fn run(cfg: &Config) {
@@ -17,7 +20,9 @@ pub fn run(cfg: &Config) {
     loop {
         terminal.draw(|f| ui::draw(f, &app)).unwrap();
         events::handle(&mut app).unwrap();
-        if app.quit { break; }
+        if app.quit {
+            break;
+        }
     }
 
     disable_raw_mode().unwrap();

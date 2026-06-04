@@ -1,8 +1,8 @@
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use flux::config::Config;
+use flux::miner::{Session, WorkflowDag};
 use flux::search::SearchEngine;
 use flux::store::{ShellEvent, Store};
-use flux::miner::{Session, WorkflowDag};
 
 fn bench_store_ingest(c: &mut Criterion) {
     c.bench_function("store_ingest_10k", |b| {
@@ -20,14 +20,14 @@ fn bench_store_ingest(c: &mut Criterion) {
 fn bench_search(c: &mut Criterion) {
     let mut engine = SearchEngine::new(&Config::default());
     let mut store = Store::default();
-    
+
     // Populate with 50,000 realistic-looking commands
     for i in 0..50_000 {
         let cmd = format!("git commit -m 'feature/test-{}' --no-verify", i);
         let ev = ShellEvent::new(&cmd);
         store.ingest(&ev);
     }
-    
+
     // Add some noise
     for i in 0..10_000 {
         let cmd = format!("docker run -d nginx:{}", i);
@@ -67,7 +67,10 @@ fn bench_workflow_miner(c: &mut Criterion) {
             ShellEvent::new("git push origin main"),
             ShellEvent::new("npm run deploy"),
         ];
-        let mut session = Session { id: format!("sess_{}", _i), events: vec![] };
+        let mut session = Session {
+            id: format!("sess_{}", _i),
+            events: vec![],
+        };
         for ev in events {
             session.events.push(ev);
         }
@@ -84,9 +87,7 @@ fn bench_workflow_miner(c: &mut Criterion) {
     dag.ingest(&sessions);
 
     c.bench_function("miner_predict_next", |b| {
-        b.iter(|| {
-            dag.predict(black_box("git commit -m 'test'"), black_box(5))
-        });
+        b.iter(|| dag.predict(black_box("git commit -m 'test'"), black_box(5)));
     });
 }
 

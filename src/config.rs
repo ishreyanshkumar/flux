@@ -37,13 +37,22 @@ impl Config {
     }
 
     pub fn primary_alias_file(&self) -> &str {
-        self.alias_file_paths.first().map(String::as_str).unwrap_or("")
+        self.alias_file_paths
+            .first()
+            .map(String::as_str)
+            .unwrap_or("")
     }
 
-    pub fn store_path(&self) -> String { format!("{}/command_store.json", self.data_dir) }
-    pub fn wal_path(&self)   -> String { format!("{}/events.wal",         self.data_dir) }
+    pub fn store_path(&self) -> String {
+        format!("{}/command_store.json", self.data_dir)
+    }
+    pub fn wal_path(&self) -> String {
+        format!("{}/events.wal", self.data_dir)
+    }
 }
 
 fn data_dir() -> PathBuf {
-    dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".flux")
+    dirs::home_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join(".flux")
 }
